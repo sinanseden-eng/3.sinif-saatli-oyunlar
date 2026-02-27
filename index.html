@@ -17,6 +17,9 @@
     
     <!-- Babel (Tarayıcıda JSX'i derlemek için) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Three.js (Gerçek 3D Grafikler İçin) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         /* Tailwind'in saf CDN versiyonunda bazen animasyonları özelleştirmemiz gerekebiliyor */
@@ -114,85 +117,360 @@
             </div>
         );
 
-        // --- YENİ ROBLOX TARZI BLOK KARAKTER BİLEŞENİ ---
-        const RobloxCharacter = ({ charIndex, size = "100%" }) => {
-            // 100 farklı kombinasyon için diziler
-            const skins = ["#fde047", "#fbcfe8", "#d6d3d1", "#ffedd5", "#a3e635"];
-            const shirts = ["#ef4444", "#3b82f6", "#22c55e", "#a855f7", "#f97316", "#1e293b", "#ffffff", "#eab308"];
-            const pants = ["#1e293b", "#3b82f6", "#78350f", "#facc15", "#475569"];
-            
-            // Tatlı yüz ifadeleri
-            const faces = [
-                // 0: Standart Gülümseme
-                <g key="f0"><circle cx="42" cy="24" r="3"/><circle cx="58" cy="24" r="3"/><path d="M44 30 Q50 36 56 30" fill="transparent" stroke="black" strokeWidth="2.5" strokeLinecap="round"/></g>,
-                // 1: OwO Yüzü
-                <g key="f1"><path d="M38 24 Q41 20 44 24" fill="transparent" stroke="black" strokeWidth="2.5" strokeLinecap="round"/><path d="M56 24 Q59 20 62 24" fill="transparent" stroke="black" strokeWidth="2.5" strokeLinecap="round"/><path d="M46 30 Q50 34 54 30" fill="transparent" stroke="black" strokeWidth="2.5" strokeLinecap="round"/></g>,
-                // 2: Havalı Gözlük
-                <g key="f2"><rect x="36" y="22" width="12" height="6" fill="#0f172a"/><rect x="52" y="22" width="12" height="6" fill="#0f172a"/><line x1="48" y1="25" x2="52" y2="25" stroke="#0f172a" strokeWidth="2"/><path d="M46 32 Q50 35 54 32" fill="transparent" stroke="black" strokeWidth="2"/></g>,
-                // 3: Şaşkın / Masum
-                <g key="f3"><circle cx="42" cy="25" r="4"/><circle cx="58" cy="25" r="4"/><circle cx="43" cy="24" r="1.5" fill="white"/><circle cx="59" cy="24" r="1.5" fill="white"/><circle cx="50" cy="32" r="2.5" fill="black"/></g>,
-                // 4: Dedektif Bıyığı
-                <g key="f4"><circle cx="42" cy="22" r="2.5"/><circle cx="58" cy="22" r="2.5"/><path d="M38 30 Q50 26 62 30 Q50 34 38 30" fill="#333"/></g>
-            ];
-
-            // charIndex (0-99) değerine göre benzersiz ama sabit bir tasarım oluştur
-            const s = skins[charIndex % skins.length];
-            const sh = shirts[Math.floor(charIndex / 3) % shirts.length];
-            const p = pants[Math.floor(charIndex / 7) % pants.length];
-            const f = faces[Math.floor(charIndex / 2) % faces.length];
-
-            return (
-                <svg viewBox="0 0 100 100" width={size} height={size} className="drop-shadow-xl filter">
-                    {/* Arka Kol (Yürüme efekti için hafif geride) */}
-                    <rect x="72" y="48" width="16" height="28" fill={s} rx="3" stroke="#0f172a" strokeWidth="1.5"/>
-                    <rect x="72" y="48" width="16" height="14" fill={sh} rx="3" stroke="#0f172a" strokeWidth="1.5"/>
-                    
-                    {/* Arka Bacak */}
-                    <rect x="52" y="80" width="18" height="20" fill={p} rx="2" stroke="#0f172a" strokeWidth="1.5"/>
-                    <rect x="52" y="94" width="18" height="6" fill="#111" rx="2" /> {/* Ayakkabı */}
-
-                    {/* Gövde (Karemsi) */}
-                    <rect x="28" y="46" width="44" height="36" fill={sh} rx="4" stroke="#0f172a" strokeWidth="1.5"/>
-                    
-                    {/* Yaka/Kravat (Dedektif detayı) */}
-                    <path d="M44 46 L50 56 L56 46 Z" fill="#f8fafc" stroke="#0f172a" strokeWidth="1"/>
-                    <rect x="48" y="56" width="4" height="14" fill="#dc2626" />
-
-                    {/* Ön Bacak */}
-                    <rect x="30" y="80" width="18" height="20" fill={p} rx="2" stroke="#0f172a" strokeWidth="1.5"/>
-                    <rect x="30" y="94" width="18" height="6" fill="#111" rx="2" /> {/* Ayakkabı */}
-
-                    {/* Ön Kol */}
-                    <rect x="12" y="48" width="16" height="28" fill={s} rx="3" stroke="#0f172a" strokeWidth="1.5"/>
-                    <rect x="12" y="48" width="16" height="14" fill={sh} rx="3" stroke="#0f172a" strokeWidth="1.5"/>
-
-                    {/* Kafa (Tam Kare/Blok) */}
-                    <rect x="25" y="6" width="50" height="42" fill={s} rx="6" stroke="#0f172a" strokeWidth="1.5"/>
-                    {/* Yüz */}
-                    {f}
-                </svg>
-            );
+        // --- 3D YARDIMCI FONKSİYONLAR ---
+        
+        // 100 Farklı Kız Karakter Kombinasyonu Üretici
+        const getCharColors = (index) => {
+            const skins = [0xffddc1, 0xd4a373, 0x8b5a2b, 0x3e2723]; // 4 Ten Rengi
+            const hairs = [0x111111, 0x5c3a21, 0xe8c39e, 0x8b0000, 0x6a0dad]; // 5 Saç Rengi
+            const dresses = [0xff0000, 0x0055ff, 0x22cc22, 0xff1493, 0xffd700]; // 5 Elbise Rengi
+            // 4 * 5 * 5 = 100 kombinasyon
+            return {
+                skin: skins[index % 4],
+                hair: hairs[Math.floor(index / 4) % 5],
+                dress: dresses[Math.floor(index / 20) % 5]
+            };
         };
 
-        // --- OYUN 1: DEDEKTİF (ROBLOX MURDER MYSTERY VERSİYONU) ---
+        // 3D Kız Karakter (İnsan formunda, elbiseli, saçlı)
+        const create3DCharacter = (index) => {
+            const colors = getCharColors(index);
+            const group = new THREE.Group();
+            
+            const skinMat = new THREE.MeshLambertMaterial({ color: colors.skin });
+            const hairMat = new THREE.MeshLambertMaterial({ color: colors.hair });
+            const dressMat = new THREE.MeshLambertMaterial({ color: colors.dress });
+
+            // Kafa
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), skinMat);
+            head.position.y = 2.8;
+            head.castShadow = true;
+            group.add(head);
+
+            // Saç ve Topuz
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.65, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.5), hairMat);
+            hair.position.y = 2.85;
+            group.add(hair);
+            const bun = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), hairMat);
+            bun.position.set(0, 3.2, -0.4);
+            group.add(bun);
+
+            // Elbise / Gövde (Koniye benzer silindir)
+            const dress = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.8, 1.5, 16), dressMat);
+            dress.position.y = 1.5;
+            dress.castShadow = true;
+            group.add(dress);
+
+            // Kollar
+            const armGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.2, 8);
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            leftArm.position.set(-0.5, 1.6, 0);
+            leftArm.rotation.z = Math.PI / 8;
+            leftArm.castShadow = true;
+            group.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+            rightArm.position.set(0.5, 1.6, 0);
+            rightArm.rotation.z = -Math.PI / 8;
+            rightArm.castShadow = true;
+            group.add(rightArm);
+
+            // Bacaklar
+            const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 1, 8);
+            const legMat = new THREE.MeshLambertMaterial({ color: 0x111111 }); // Siyah tayt/ayakkabı
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-0.25, 0.5, 0);
+            leftLeg.castShadow = true;
+            group.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.position.set(0.25, 0.5, 0);
+            rightLeg.castShadow = true;
+            group.add(rightLeg);
+
+            return group;
+        };
+
+        // Özelleştirme Ekranı İçin 3D Önizleme Bileşeni
+        const CharacterPreview3D = ({ charIndex }) => {
+            const mountRef = React.useRef(null);
+            
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+                camera.position.set(0, 3, 8);
+                
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(250, 250);
+                mountRef.current.appendChild(renderer.domElement);
+
+                scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+                const light = new THREE.DirectionalLight(0xffffff, 0.8);
+                light.position.set(5, 5, 5);
+                scene.add(light);
+
+                const char = create3DCharacter(charIndex);
+                char.position.y = -1.5;
+                scene.add(char);
+
+                let reqId;
+                const animate = () => {
+                    reqId = requestAnimationFrame(animate);
+                    char.rotation.y += 0.02; // Yavaşça dön
+                    renderer.render(scene, camera);
+                };
+                animate();
+
+                return () => {
+                    cancelAnimationFrame(reqId);
+                    mountRef.current?.removeChild(renderer.domElement);
+                };
+            }, [charIndex]);
+
+            return <div ref={mountRef} className="w-[250px] h-[250px] mx-auto"></div>;
+        };
+
+        // 3D Oyun Motoru Sınıfı
+        class DetectiveGame3D {
+            constructor(container, mapId, charIndex, onClueHit) {
+                this.container = container;
+                this.onClueHit = onClueHit;
+                this.paused = false;
+                this.keys = { w: false, a: false, s: false, d: false };
+                this.clues = [];
+
+                // Sahne & Kamera
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(mapId === 'market' ? 0x0f172a : mapId === 'orman' ? 0x87CEEB : 0x1e293b);
+                this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+                
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                container.appendChild(this.renderer.domElement);
+
+                // Işıklar
+                this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                dirLight.position.set(20, 40, 20);
+                dirLight.castShadow = true;
+                dirLight.shadow.camera.left = -30;
+                dirLight.shadow.camera.right = 30;
+                dirLight.shadow.camera.top = 30;
+                dirLight.shadow.camera.bottom = -30;
+                this.scene.add(dirLight);
+
+                // Haritayı Kur
+                this.buildMap(mapId);
+
+                // Oyuncu Karakteri
+                this.player = create3DCharacter(charIndex);
+                this.player.position.set(0, 0, 0);
+                this.scene.add(this.player);
+
+                // İpuçlarını Dağıt
+                this.spawnClues();
+
+                // Kontroller
+                this.handleKeyDown = (e) => this.keys[e.key.toLowerCase()] = true;
+                this.handleKeyUp = (e) => this.keys[e.key.toLowerCase()] = false;
+                window.addEventListener('keydown', this.handleKeyDown);
+                window.addEventListener('keyup', this.handleKeyUp);
+
+                // Döngü
+                this.animate = this.animate.bind(this);
+                this.reqId = requestAnimationFrame(this.animate);
+            }
+
+            buildMap(mapId) {
+                // Zemin
+                const groundGeo = new THREE.PlaneGeometry(100, 100);
+                const colors = { orman: 0x2d4c1e, market: 0x1e293b, lahmacun: 0x9a3412, podyum: 0x701a75, muze: 0x292524 };
+                const groundMat = new THREE.MeshLambertMaterial({ color: colors[mapId] });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                // Yol (Ortadan)
+                const roadGeo = new THREE.PlaneGeometry(8, 100);
+                const roadColors = { orman: 0x5c4033, market: 0x334155, lahmacun: 0xfde047, podyum: 0xfbcfe8, muze: 0xe5e5e5 };
+                const roadMat = new THREE.MeshLambertMaterial({ color: roadColors[mapId] });
+                const road = new THREE.Mesh(roadGeo, roadMat);
+                road.rotation.x = -Math.PI / 2;
+                road.position.y = 0.05;
+                road.receiveShadow = true;
+                this.scene.add(road);
+
+                // Çevre Objeleri
+                for(let i=0; i<60; i++) {
+                    let x = (Math.random() - 0.5) * 80;
+                    let z = (Math.random() - 0.5) * 80;
+                    if (Math.abs(x) < 6) continue; // Yolu boş bırak
+
+                    if (mapId === 'orman') {
+                        // Gerçekçi Ağaçlar (Gövde + İğne Yaprak)
+                        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 3), new THREE.MeshLambertMaterial({color: 0x4a3728}));
+                        trunk.position.set(x, 1.5, z);
+                        trunk.castShadow = true;
+                        this.scene.add(trunk);
+                        
+                        const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5, 6, 8), new THREE.MeshLambertMaterial({color: 0x1b5e20}));
+                        leaves.position.set(x, 5, z);
+                        leaves.castShadow = true;
+                        this.scene.add(leaves);
+                        
+                        // Arada bir baraka
+                        if (i % 15 === 0) {
+                            const house = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), new THREE.MeshLambertMaterial({color: 0x8b5a2b}));
+                            house.position.set(x+2, 2, z+2);
+                            house.castShadow = true;
+                            this.scene.add(house);
+                            const roof = new THREE.Mesh(new THREE.ConeGeometry(3.5, 2, 4), new THREE.MeshLambertMaterial({color: 0x3e2723}));
+                            roof.position.set(x+2, 5, z+2);
+                            roof.rotation.y = Math.PI/4;
+                            this.scene.add(roof);
+                        }
+                    } else if (mapId === 'market') {
+                        // Çadır / Stand
+                        const stall = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshLambertMaterial({color: 0x94a3b8}));
+                        stall.position.set(x, 1.5, z);
+                        stall.castShadow = true;
+                        this.scene.add(stall);
+                        const awning = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 4), new THREE.MeshLambertMaterial({color: i%2===0 ? 0xef4444 : 0x3b82f6}));
+                        awning.rotation.x = -Math.PI/3;
+                        awning.position.set(x, 3.5, z+1);
+                        this.scene.add(awning);
+                    } else if (mapId === 'muze') {
+                        // Sütunlar ve Eserler
+                        const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1.5), new THREE.MeshLambertMaterial({color: 0xffffff}));
+                        pillar.position.set(x, 1.5, z);
+                        pillar.castShadow = true;
+                        this.scene.add(pillar);
+                        const art = new THREE.Mesh(new THREE.TorusKnotGeometry(0.5, 0.15, 64, 8), new THREE.MeshStandardMaterial({color: 0xffd700, metalness: 1}));
+                        art.position.set(x, 3.8, z);
+                        this.scene.add(art);
+                    }
+                    // Lahmacun ve Podyum için basit objeler
+                    else {
+                        const obj = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshLambertMaterial({color: Math.random() * 0xffffff}));
+                        obj.position.set(x, 1, z);
+                        obj.castShadow = true;
+                        this.scene.add(obj);
+                    }
+                }
+            }
+
+            spawnClues() {
+                for(let i=0; i<10; i++) {
+                    // Altın Büyüteç / Soru İşareti simülasyonu
+                    const mesh = new THREE.Mesh(
+                        new THREE.OctahedronGeometry(0.8),
+                        new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa8800, metalness: 0.8 })
+                    );
+                    mesh.position.set((Math.random() - 0.5) * 40, 1, (Math.random() - 0.5) * 40);
+                    mesh.castShadow = true;
+                    this.scene.add(mesh);
+                    this.clues.push({ id: i, mesh, solved: false });
+                }
+            }
+
+            animate() {
+                this.reqId = requestAnimationFrame(this.animate);
+                if (this.paused) return;
+
+                // Hareket
+                const speed = 0.2;
+                let dx = 0, dz = 0;
+                
+                // Mobil destekli dışarıdan gelen tuşları da oku
+                if (this.keys.w || this.keys.arrowup) dz -= speed;
+                if (this.keys.s || this.keys.arrowdown) dz += speed;
+                if (this.keys.a || this.keys.arrowleft) dx -= speed;
+                if (this.keys.d || this.keys.arrowright) dx += speed;
+
+                this.player.position.x += dx;
+                this.player.position.z += dz;
+
+                // Yüzün Döneceği Yön
+                if (dx !== 0 || dz !== 0) {
+                    this.player.rotation.y = Math.atan2(dx, dz);
+                }
+
+                // Kamerayı İzlet (İzometrik / 3rd Person açı)
+                this.camera.position.x = this.player.position.x;
+                this.camera.position.z = this.player.position.z + 15;
+                this.camera.position.y = 12;
+                this.camera.lookAt(this.player.position);
+
+                // İpucu Çarpışma Kontrolü & Efektler
+                this.clues.forEach(clue => {
+                    if (!clue.solved) {
+                        clue.mesh.rotation.y += 0.05;
+                        clue.mesh.position.y = 1 + Math.sin(Date.now() * 0.005) * 0.3; // Zıplama efekti
+                        
+                        // Mesafe kontrolü
+                        if (this.player.position.distanceTo(clue.mesh.position) < 2) {
+                            this.onClueHit(clue.id);
+                        }
+                    }
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            setPaused(p) { this.paused = p; }
+            
+            resetPlayer() { 
+                this.player.position.set(0, 0, 0); 
+                this.camera.position.set(0, 12, 15);
+            }
+            
+            markSolved(id) {
+                const clue = this.clues.find(c => c.id === id);
+                if(clue) {
+                    clue.solved = true;
+                    this.scene.remove(clue.mesh);
+                }
+            }
+
+            cleanup() {
+                window.removeEventListener('keydown', this.handleKeyDown);
+                window.removeEventListener('keyup', this.handleKeyUp);
+                cancelAnimationFrame(this.reqId);
+                this.container.innerHTML = '';
+            }
+            
+            // Mobil Buton Tetikleyicileri İçin
+            simulateKey(key, isDown) {
+                this.keys[key] = isDown;
+            }
+        }
+
+
+        // --- OYUN 1: DEDEKTİF (3D ROBLOX MYSTERY VERSİYONU) ---
         const Game1Mystery = ({ onBack }) => {
-            const [mode, setMode] = useState('customize'); // customize, selectMap, explore, question, won, lost
+            const [mode, setMode] = useState('customize'); // customize, selectMap, explore
             const [charIndex, setCharIndex] = useState(0); // 0 to 99
             const [activeMapId, setActiveMapId] = useState('orman');
-            const [pos, setPos] = useState({ x: 0, y: 0 });
-            const [clues, setClues] = useState([]);
-            const [currentClue, setCurrentClue] = useState(null);
             const [lives, setLives] = useState(3);
+            const [solvedCount, setSolvedCount] = useState(0);
+            
+            // Soru State'leri
+            const [activeQuestion, setActiveQuestion] = useState(null);
             const [showFeedback, setShowFeedback] = useState(false);
             const [isCorrect, setIsCorrect] = useState(false);
-            const gridSize = 8;
+
+            const containerRef = React.useRef(null);
+            const engineRef = React.useRef(null);
 
             const MAP_THEMES = {
-                orman: { name: "Karanlık Orman", bg: "bg-green-900", tile: "bg-green-800", border: "border-green-950", icon: "🌲", items: ["🍄", "🪵", "🌿", "🐺"] },
-                market: { name: "Gece Marketi", bg: "bg-blue-200", tile: "bg-slate-50", border: "border-blue-300", icon: "🛒", items: ["🥫", "🍎", "🥛", "📦"] },
-                lahmacun: { name: "Meşhur Lahmacuncu", bg: "bg-orange-800", tile: "bg-orange-100", border: "border-red-900", icon: "🍕", items: ["🌶️", "🍋", "🧅", "🧄"] },
-                podyum: { name: "Moda Podyumu", bg: "bg-fuchsia-900", tile: "bg-pink-300", border: "border-fuchsia-400", icon: "✨", items: ["📸", "🎀", "👗", "👠"] },
-                muze: { name: "Tarih Müzesi", bg: "bg-stone-900", tile: "bg-amber-100", border: "border-stone-500", icon: "🏛️", items: ["🏺", "🖼️", "🗿", "👑"] }
+                orman: { name: "Karanlık Orman", icon: "🌲" },
+                market: { name: "Gece Marketi", icon: "🛒" },
+                lahmacun: { name: "Meşhur Lahmacuncu", icon: "🍕" },
+                podyum: { name: "Moda Podyumu", icon: "✨" },
+                muze: { name: "Tarih Müzesi", icon: "🏛️" }
             };
 
             const questions = [
@@ -208,108 +486,80 @@
                 { story: "10. İpucu: Son şans! Katil tam 'Gece on birde' uykuya dalmış!", correctIdx: 2, options: [{ h: 11, m: 0 }, { h: 22, m: 0 }, { h: 23, m: 0 }] }
             ];
 
-            const handleCharChange = (delta) => {
-                setCharIndex(prev => (prev + delta + 100) % 100);
-            };
-
             const startGame = (mapId) => {
                 setActiveMapId(mapId);
-                let newClues = [];
-                while(newClues.length < 10) {
-                    let rx = Math.floor(Math.random() * gridSize);
-                    let ry = Math.floor(Math.random() * gridSize);
-                    if ((rx !== 0 || ry !== 0) && !newClues.find(c => c.x === rx && c.y === ry)) {
-                        newClues.push({ x: rx, y: ry, solved: false, id: newClues.length });
-                    }
-                }
-                setClues(newClues);
-                setPos({ x: 0, y: 0 });
-                setLives(3);
                 setMode('explore');
+                setLives(3);
+                setSolvedCount(0);
             };
 
-            const handleMove = useCallback((dx, dy) => {
-                if (mode !== 'explore' || showFeedback) return;
-                setPos(prev => ({
-                    x: Math.max(0, Math.min(gridSize - 1, prev.x + dx)),
-                    y: Math.max(0, Math.min(gridSize - 1, prev.y + dy))
-                }));
-            }, [mode, showFeedback, gridSize]);
-
+            // 3D Motoru Başlatma
             useEffect(() => {
-                const handleKeyDown = (e) => {
-                    if (e.key === 'ArrowUp' || e.key === 'w') handleMove(0, -1);
-                    if (e.key === 'ArrowDown' || e.key === 's') handleMove(0, 1);
-                    if (e.key === 'ArrowLeft' || e.key === 'a') handleMove(-1, 0);
-                    if (e.key === 'ArrowRight' || e.key === 'd') handleMove(1, 0);
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [handleMove]);
-
-            useEffect(() => {
-                if (mode === 'explore') {
-                    const hitClue = clues.find(c => c.x === pos.x && c.y === pos.y && !c.solved);
-                    if (hitClue) {
-                        setCurrentClue(hitClue);
-                        setMode('question');
-                    }
+                if (mode === 'explore' && containerRef.current && !engineRef.current) {
+                    engineRef.current = new DetectiveGame3D(containerRef.current, activeMapId, charIndex, (clueId) => {
+                        engineRef.current.setPaused(true);
+                        setActiveQuestion(clueId);
+                    });
                 }
-            }, [pos, clues, mode]);
+                return () => {
+                    if (mode !== 'explore' && engineRef.current) {
+                        engineRef.current.cleanup();
+                        engineRef.current = null;
+                    }
+                };
+            }, [mode, activeMapId, charIndex]);
 
+            // Soru Çözme Mantığı
             const handleGuess = (idx) => {
-                const q = questions[currentClue.id];
-                const correct = idx === q.correctIdx;
-                setIsCorrect(correct);
+                const q = questions[activeQuestion];
+                setIsCorrect(idx === q.correctIdx);
                 setShowFeedback(true);
             };
 
             const nextStep = () => {
                 setShowFeedback(false);
+                
                 if (isCorrect) {
-                    const newClues = clues.map(c => c.id === currentClue.id ? { ...c, solved: true } : c);
-                    setClues(newClues);
-                    const solvedCount = newClues.filter(c => c.solved).length;
-                    
-                    if (solvedCount === 10) {
-                        setMode('won');
-                    } else {
-                        setMode('explore');
-                    }
+                    engineRef.current.markSolved(activeQuestion);
+                    const newCount = solvedCount + 1;
+                    setSolvedCount(newCount);
+                    if (newCount >= 10) setMode('won');
+                    else engineRef.current.setPaused(false);
                 } else {
                     const newLives = lives - 1;
                     setLives(newLives);
                     if (newLives <= 0) {
                         setMode('lost');
                     } else {
-                        setPos({ x: 0, y: 0 });
-                        setMode('explore');
+                        engineRef.current.resetPlayer(); // Başa at
+                        engineRef.current.setPaused(false);
                     }
                 }
+                setActiveQuestion(null);
             };
 
-            const activeTheme = MAP_THEMES[activeMapId];
-            const solvedCluesCount = clues.filter(c => c.solved).length;
+            // Mobil Kontrol Fonksiyonları
+            const handleBtn = (key, isDown) => {
+                if(engineRef.current) engineRef.current.simulateKey(key, isDown);
+            };
 
-            // EKRAN 1: KARAKTER SEÇİMİ
+            // --- EKRAN 1: KARAKTER SEÇİMİ ---
             if (mode === 'customize') {
                 return (
                     <div className="max-w-4xl mx-auto">
-                        <GameHeader title="Roblox Dedektifini Seç" onBack={onBack} icon={Search} />
+                        <GameHeader title="3D Dedektifini Seç" onBack={onBack} icon={Search} />
                         <div className="bg-white p-8 rounded-2xl shadow-lg border-t-8 border-indigo-500 flex flex-col items-center justify-center">
-                            <h3 className="text-xl font-bold text-slate-700 mb-6">100 Farklı Karakterden Birini Seç!</h3>
+                            <h3 className="text-xl font-bold text-slate-700 mb-6">100 Farklı Kız Karakterden Birini Seç!</h3>
                             
                             <div className="flex items-center gap-8 mb-8">
-                                <button onClick={() => handleCharChange(-1)} className="w-16 h-16 rounded-full bg-slate-200 hover:bg-indigo-500 hover:text-white flex items-center justify-center font-black text-2xl shadow-md transition-all active:scale-95"> &lt; </button>
+                                <button onClick={() => setCharIndex(p => (p - 1 + 100) % 100)} className="w-16 h-16 rounded-full bg-slate-200 hover:bg-indigo-500 hover:text-white flex items-center justify-center font-black text-2xl shadow-md transition-all active:scale-95"> &lt; </button>
                                 
-                                <div className="bg-gradient-to-br from-indigo-100 to-purple-100 p-6 rounded-3xl shadow-inner border-4 border-indigo-200 w-64 h-64 flex flex-col items-center justify-center relative overflow-hidden">
-                                    <div className="w-48 h-48 relative z-10 animate-bounce-slow">
-                                        <RobloxCharacter charIndex={charIndex} />
-                                    </div>
-                                    <span className="absolute bottom-2 bg-black/50 text-white px-3 py-1 rounded-full font-mono text-sm font-bold">Karakter #{charIndex + 1}</span>
+                                <div className="bg-gradient-to-br from-indigo-50 to-purple-100 p-2 rounded-3xl shadow-inner border-4 border-indigo-200 relative overflow-hidden">
+                                    <CharacterPreview3D charIndex={charIndex} />
+                                    <span className="absolute bottom-4 bg-black/70 text-white px-4 py-1 rounded-full font-mono text-sm font-bold left-1/2 -translate-x-1/2">Karakter #{charIndex + 1}</span>
                                 </div>
 
-                                <button onClick={() => handleCharChange(1)} className="w-16 h-16 rounded-full bg-slate-200 hover:bg-indigo-500 hover:text-white flex items-center justify-center font-black text-2xl shadow-md transition-all active:scale-95"> &gt; </button>
+                                <button onClick={() => setCharIndex(p => (p + 1) % 100)} className="w-16 h-16 rounded-full bg-slate-200 hover:bg-indigo-500 hover:text-white flex items-center justify-center font-black text-2xl shadow-md transition-all active:scale-95"> &gt; </button>
                             </div>
 
                             <button onClick={() => setMode('selectMap')} className="bg-green-500 hover:bg-green-400 text-white font-black py-4 px-12 rounded-2xl shadow-lg border-b-4 border-green-700 active:border-b-0 active:translate-y-1 transition-all text-2xl flex items-center gap-3">
@@ -320,19 +570,17 @@
                 );
             }
 
-            // EKRAN 2: HARİTA SEÇİMİ
+            // --- EKRAN 2: HARİTA SEÇİMİ ---
             if (mode === 'selectMap') {
                 return (
                     <div className="max-w-5xl mx-auto">
-                        <GameHeader title="Olay Yerini Seç (Haritalar)" onBack={() => setMode('customize')} icon={Search} />
+                        <GameHeader title="Olay Yerini Seç (3D Haritalar)" onBack={() => setMode('customize')} icon={Search} />
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             {Object.entries(MAP_THEMES).map(([id, theme]) => (
-                                <button key={id} onClick={() => startGame(id)} className={`${theme.bg} p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform border-4 ${theme.border} flex flex-col items-center gap-4 group relative overflow-hidden`}>
-                                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                <button key={id} onClick={() => startGame(id)} className="bg-slate-800 p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform border-4 border-slate-600 flex flex-col items-center gap-4 group">
                                     <div className="text-6xl filter drop-shadow-md z-10">{theme.icon}</div>
                                     <h3 className="text-2xl font-black text-white drop-shadow-md z-10">{theme.name}</h3>
-                                    <div className="flex gap-2 text-2xl z-10">{theme.items.map((item, i) => <span key={i}>{item}</span>)}</div>
-                                    <div className="mt-2 bg-white/20 text-white px-4 py-2 rounded-full font-bold z-10 group-hover:bg-white group-hover:text-black transition-colors">Burada Oyna</div>
+                                    <div className="mt-2 bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold z-10 group-hover:bg-indigo-400 transition-colors">3D Dünyaya Gir</div>
                                 </button>
                             ))}
                         </div>
@@ -340,7 +588,7 @@
                 );
             }
 
-            // EKRAN 3 & 4: KAZANMA VE KAYBETME
+            // --- EKRAN 3 & 4: KAZANMA VE KAYBETME ---
             if (mode === 'won' || mode === 'lost') {
                 return (
                     <div className="max-w-4xl mx-auto text-center">
@@ -348,12 +596,10 @@
                         <div className={`p-12 rounded-3xl shadow-2xl ${mode === 'won' ? 'bg-green-100 border-4 border-green-500' : 'bg-red-100 border-4 border-red-500'}`}>
                             {mode === 'won' ? <Trophy size={100} className="mx-auto text-yellow-500 mb-6" /> : <Ghost size={100} className="mx-auto text-slate-700 mb-6" />}
                             <h2 className={`text-4xl font-black mb-4 ${mode === 'won' ? 'text-green-700' : 'text-red-700'}`}>
-                                {mode === 'won' ? "Murder Mystery Çözüldü!" : "Eyvah, Katil Kaçtı!"}
+                                {mode === 'won' ? "Mükemmel! Suçluyu Yakaladın!" : "Eyvah, Katil Kaçtı!"}
                             </h2>
                             <p className="text-xl text-slate-700 font-medium mb-8">
-                                {mode === 'won' 
-                                    ? `10 ipucunu da doğru çözdün ve ${activeTheme.name} haritasını kurtardın!` 
-                                    : "İpuçlarını çözerken zaman kaybettin ve katil izini kaybettirdi. Tekrar denemelisin!"}
+                                {mode === 'won' ? `Tüm ipuçlarını çözdün ve ${MAP_THEMES[activeMapId].name} güvende!` : "Zaman kaybettin ve izini kaybettirdi."}
                             </p>
                             <button onClick={onBack} className="bg-slate-800 text-white px-8 py-4 rounded-xl font-bold text-xl hover:scale-105 transition-transform">
                                 Ana Menüye Dön
@@ -363,99 +609,75 @@
                 );
             }
 
-            // EKRAN 5: İPUCU / SORU ÇÖZME EKRANI
-            if (mode === 'question') {
-                const q = questions[currentClue.id];
-                return (
-                    <div className="max-w-4xl mx-auto">
-                        <GameHeader title="İpucu Bulundu!" onBack={onBack} icon={Search} />
-                        <div className={`${activeTheme.bg} rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden border-4 ${activeTheme.border}`}>
-                            <div className="bg-black/40 p-6 rounded-2xl border-l-8 border-yellow-400 mb-8 backdrop-blur-sm">
-                                <p className="text-2xl font-bold leading-relaxed">{q.story}</p>
-                            </div>
-                            <div className="flex flex-wrap justify-center gap-8">
-                                {q.options.map((opt, i) => (
-                                    <button key={i} onClick={() => handleGuess(i)} className="bg-white text-slate-900 p-6 rounded-3xl flex flex-col items-center gap-4 hover:bg-yellow-200 hover:scale-110 transition-all shadow-[0_10px_0_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_rgba(0,0,0,0.2)] active:translate-y-2">
-                                        <AnalogClock hour={opt.h} minute={opt.m} size={140} />
-                                        <span className="font-black text-2xl bg-slate-200 px-6 py-2 rounded-full">{String(opt.h).padStart(2,'0')}:{String(opt.m).padStart(2,'0')}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        {showFeedback && <FeedbackModal isSuccess={isCorrect} message={isCorrect ? "Doğru saat! Katilin peşindesin." : "Yanlış! Başa döndün ve zaman kaybettin. Katil uzaklaşıyor!"} onNext={nextStep} />}
-                    </div>
-                );
-            }
-
-            // EKRAN 6: HARİTA VE KEŞİF
+            // --- EKRAN 5: 3D OYNANIŞ (EXPLORE) ---
             return (
-                <div className="max-w-4xl mx-auto select-none">
-                    <GameHeader title={`${activeTheme.name} - Murder Mystery`} onBack={onBack} icon={Search} />
+                <div className="max-w-5xl mx-auto select-none relative">
+                    <GameHeader title={`${MAP_THEMES[activeMapId].name} - 3D Roleplay`} onBack={onBack} icon={Search} />
                     
                     {/* Üst Bilgi Barı */}
-                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border-b-4 border-indigo-300">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-4 border-b-4 border-indigo-300 relative z-10">
                         <div className="flex gap-2">
                             {[...Array(3)].map((_, i) => (
                                 <Heart key={i} size={28} className={i < lives ? "text-red-500" : "text-slate-200"} style={i < lives ? { fill: '#ef4444'} : {}} />
                             ))}
                         </div>
                         <div className="bg-slate-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2">
-                            <Search size={18} className="text-yellow-400" /> İpuçları: {solvedCluesCount} / 10
+                            <Search size={18} className="text-yellow-400" /> Çözülen İpuçları: {solvedCount} / 10
                         </div>
                     </div>
 
-                    <div className={`${activeTheme.bg} p-4 md:p-8 rounded-3xl shadow-2xl border-8 ${activeTheme.border} mx-auto max-w-[650px] relative overflow-hidden`}>
-                        {/* Izgara Harita */}
-                        <div className="grid gap-1 relative z-10" style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
-                            {[...Array(gridSize * gridSize)].map((_, i) => {
-                                const x = i % gridSize;
-                                const y = Math.floor(i / gridSize);
-                                const isPlayerHere = pos.x === x && pos.y === y;
-                                const clueHere = clues.find(c => c.x === x && c.y === y);
-                                
-                                // Haritaya özgü sabit dekorasyonlar oluşturma
-                                const hasDeco = (x * 17 + y * 31) % 10 < activeTheme.items.length;
-                                const decoIcon = hasDeco ? activeTheme.items[(x * 7 + y) % activeTheme.items.length] : null;
+                    {/* 3D Kapsayıcı */}
+                    <div className="w-full h-[600px] bg-black rounded-3xl shadow-2xl border-8 border-slate-800 relative overflow-hidden">
+                        <div ref={containerRef} className="w-full h-full absolute inset-0"></div>
 
-                                return (
-                                    <div key={i} className={`aspect-square ${activeTheme.tile} rounded-md relative flex items-center justify-center border-b-4 border-r-2 ${activeTheme.border} transition-colors`}>
-                                        
-                                        {/* Dekorasyon */}
-                                        {!clueHere && !isPlayerHere && hasDeco && (
-                                            <span className="text-2xl md:text-3xl opacity-80 filter drop-shadow-sm">{decoIcon}</span>
-                                        )}
-
-                                        {/* İpucu Gösterimi */}
-                                        {clueHere && !clueHere.solved && !isPlayerHere && (
-                                            <div className="w-4/5 h-4/5 bg-yellow-400/30 rounded-full flex items-center justify-center animate-bounce shadow-[0_0_15px_rgba(250,204,21,0.6)]">
-                                                <Search size={24} className="text-yellow-600 drop-shadow-md" />
-                                            </div>
-                                        )}
-                                        {clueHere && clueHere.solved && (
-                                            <CheckCircle size={20} className="text-green-600/60 absolute bottom-1 right-1" />
-                                        )}
-
-                                        {/* Roblox Karakter Gösterimi */}
-                                        {isPlayerHere && (
-                                            <div className="w-[120%] h-[120%] absolute z-20 transition-all -translate-y-2 drop-shadow-2xl">
-                                                <RobloxCharacter charIndex={charIndex} />
-                                            </div>
-                                        )}
+                        {/* Soru Çözme Arayüzü (Overlay) */}
+                        {activeQuestion !== null && (
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-20 flex items-center justify-center p-4">
+                                <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl border-t-8 border-indigo-500 animate-in fade-in zoom-in">
+                                    <div className="bg-indigo-50 p-6 rounded-2xl border-l-8 border-yellow-400 mb-8">
+                                        <p className="text-2xl font-bold text-slate-800">{questions[activeQuestion].story}</p>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                    <div className="flex flex-wrap justify-center gap-6">
+                                        {questions[activeQuestion].options.map((opt, i) => (
+                                            <button key={i} onClick={() => handleGuess(i)} className="bg-slate-50 text-slate-900 p-6 rounded-3xl flex flex-col items-center gap-4 hover:bg-yellow-100 hover:scale-105 transition-all shadow-md border-b-4 border-slate-300 active:border-b-0 active:translate-y-1">
+                                                <AnalogClock hour={opt.h} minute={opt.m} size={120} />
+                                                <span className="font-black text-xl bg-slate-800 text-white px-6 py-2 rounded-full">{String(opt.h).padStart(2,'0')}:{String(opt.m).padStart(2,'0')}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                        {/* Mobil Kontroller */}
-                        <div className="flex flex-col items-center gap-2 mt-8 lg:hidden relative z-20">
-                            <button onClick={() => handleMove(0, -1)} className="bg-white text-slate-900 p-4 w-16 h-16 rounded-2xl active:bg-slate-200 border-b-4 border-slate-400 active:border-b-0 active:translate-y-1 shadow-lg font-black"><i className="fas fa-arrow-up text-2xl"></i></button>
+                        {/* Geri Bildirim Modal (Soru üstüne biner) */}
+                        {showFeedback && (
+                            <div className="absolute inset-0 z-30">
+                                <FeedbackModal isSuccess={isCorrect} message={isCorrect ? "Doğru saat! Katilin peşindesin." : "Yanlış! Başa döndün ve zaman kaybettin."} onNext={nextStep} />
+                            </div>
+                        )}
+
+                        {/* Mobil / Ekranda Kontroller */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 lg:hidden">
+                            <button 
+                                onTouchStart={()=>handleBtn('w', true)} onTouchEnd={()=>handleBtn('w', false)}
+                                onMouseDown={()=>handleBtn('w', true)} onMouseUp={()=>handleBtn('w', false)}
+                                className="bg-white/80 backdrop-blur text-slate-900 p-4 w-16 h-16 rounded-2xl shadow-lg font-black active:bg-slate-300"><i className="fas fa-arrow-up text-2xl"></i></button>
                             <div className="flex gap-2">
-                                <button onClick={() => handleMove(-1, 0)} className="bg-white text-slate-900 p-4 w-16 h-16 rounded-2xl active:bg-slate-200 border-b-4 border-slate-400 active:border-b-0 active:translate-y-1 shadow-lg font-black"><i className="fas fa-arrow-left text-2xl"></i></button>
-                                <button onClick={() => handleMove(0, 1)} className="bg-white text-slate-900 p-4 w-16 h-16 rounded-2xl active:bg-slate-200 border-b-4 border-slate-400 active:border-b-0 active:translate-y-1 shadow-lg font-black"><i className="fas fa-arrow-down text-2xl"></i></button>
-                                <button onClick={() => handleMove(1, 0)} className="bg-white text-slate-900 p-4 w-16 h-16 rounded-2xl active:bg-slate-200 border-b-4 border-slate-400 active:border-b-0 active:translate-y-1 shadow-lg font-black"><i className="fas fa-arrow-right text-2xl"></i></button>
+                                <button 
+                                    onTouchStart={()=>handleBtn('a', true)} onTouchEnd={()=>handleBtn('a', false)}
+                                    onMouseDown={()=>handleBtn('a', true)} onMouseUp={()=>handleBtn('a', false)}
+                                    className="bg-white/80 backdrop-blur text-slate-900 p-4 w-16 h-16 rounded-2xl shadow-lg font-black active:bg-slate-300"><i className="fas fa-arrow-left text-2xl"></i></button>
+                                <button 
+                                    onTouchStart={()=>handleBtn('s', true)} onTouchEnd={()=>handleBtn('s', false)}
+                                    onMouseDown={()=>handleBtn('s', true)} onMouseUp={()=>handleBtn('s', false)}
+                                    className="bg-white/80 backdrop-blur text-slate-900 p-4 w-16 h-16 rounded-2xl shadow-lg font-black active:bg-slate-300"><i className="fas fa-arrow-down text-2xl"></i></button>
+                                <button 
+                                    onTouchStart={()=>handleBtn('d', true)} onTouchEnd={()=>handleBtn('d', false)}
+                                    onMouseDown={()=>handleBtn('d', true)} onMouseUp={()=>handleBtn('d', false)}
+                                    className="bg-white/80 backdrop-blur text-slate-900 p-4 w-16 h-16 rounded-2xl shadow-lg font-black active:bg-slate-300"><i className="fas fa-arrow-right text-2xl"></i></button>
                             </div>
                         </div>
-                        <p className="text-white/80 text-center mt-6 hidden lg:block font-mono text-sm drop-shadow-md z-20 relative font-bold bg-black/30 py-2 rounded-full inline-block px-6 left-1/2 -translate-x-1/2">Hareket etmek için W, A, S, D veya Yön Tuşlarını kullan.</p>
+                        <p className="absolute bottom-4 left-4 text-white/70 font-mono text-sm drop-shadow-md z-10 font-bold bg-black/40 py-2 px-4 rounded-full hidden lg:block">W, A, S, D ile karakteri hareket ettir. Altın ipuçlarına yaklaş.</p>
                     </div>
                 </div>
             );
